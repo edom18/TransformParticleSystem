@@ -1,4 +1,4 @@
-﻿Shader "Unlit/Particle"
+﻿Shader "TPS/TransformParticle"
 {
     Properties
     {
@@ -77,7 +77,7 @@
             fixed4 frag(v2f i) : SV_Target
             {
                 fixed4 col;
-            
+                
                 if (i.useTex == 1)
                 {
                     col = UNITY_SAMPLE_TEX2DARRAY(_Textures, i.uv);
