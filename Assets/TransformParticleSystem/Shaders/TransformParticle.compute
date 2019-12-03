@@ -1,0 +1,154 @@
+﻿#pragma kernel Update
+#pragma kernel Setup
+#pragma kernel Explosion
+
+#define THREAD_NUM 64
+
+struct Particle
+{
+    int id;
+    int targetId;
+    float2 uv;
+
+    int isActive;
+    float3 targetPosition;
+
+    float speed;
+    float3 position;
+
+    float4 color;
+
+    int useTexture;
+};
+
+struct InitData
+{
+    int isActive;
+    float3 targetPosition;
+    int targetId;
+    float2 uv;
+};
+
+RWStructuredBuffer<Particle> _Particles;
+StructuredBuffer<InitData> _InitDataList;
+StructuredBuffer<float4x4> _MatrixData;
+
+float _DeltaTime;
+float _Time;
+int _OnCircle;
+
+float rand(float x)
+{
+    return frac(sin(x) * 43758.5453);
+}
+
+float rand(float2 co)
+{
+    return frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453);
+}
+
+float rand(float3 co)
+{
+    return frac(sin(dot(co.xyz, float3(12.9898, 78.233, 56.787))) * 43758.5453);
+}
+
+float noise(float3 pos)
+{
+    float3 ip = floor(pos);
+    float3 fp = smoothstep(0, 1, frac(pos));
+    float4 a = float4(
+        rand(ip + float3(0, 0, 0)),
+        rand(ip + float3(1, 0, 0)),
+        rand(ip + float3(0, 1, 0)),
+        rand(ip + float3(1, 1, 0)));
+    float4 b = float4(
+        rand(ip + float3(0, 0, 1)),
+        rand(ip + float3(1, 0, 1)),
+        rand(ip + float3(0, 1, 1)),
+        rand(ip + float3(1, 1, 1)));
+
+    a = lerp(a, b, fp.z);
+    a.xy = lerp(a.xy, a.zw, fp.y);
+    return lerp(a.x, a.y, fp.x);
+}
+
+///
+/// Set a new data to the particles.
+///
+[numthreads(THREAD_NUM,1,1)]
+void Setup(uint id : SV_DispatchThreadID)
+{
+    Particle p = _Particles[id];
+
+    float4x4 mat = _MatrixData[_InitDataList[id].targetId];
+
+    p.isActive = _InitDataList[id].isActive;
+    p.targetPosition = mul(mat, float4(_InitDataList[id].targetPosition, 1.0)).xyz;
+    p.uv = _InitDataList[id].uv;
+    p.targetId = _InitDataList[id].targetId;
+
+    _Particles[id] = p;
+}
+
+///
+/// Effect as explosion.
+///
+[numthreads(THREAD_NUM,1,1)]
+void Explosion(uint id : SV_DispatchThreadID)
+{
+    Particle p = _Particles[id];
+
+    if (_OnCircle == 1)
+    {
+        float h = rand(p.id);
+        float s = sin(p.id + _Time) * 1.5;
+        float c = cos(p.id + _Time) * 1.5;
+        float3 pp = float3(s, h * 1.5, c) + noise(p.position);
+        float3 pos = (pp - p.position) * _DeltaTime * p.speed;
+        p.position += pos;
+        p.color = float4(1, 1, 1, 1);
+        p.useTexture = 0;
+    }
+    else
+    {
+        float h = rand(p.id);
+        float3 pos = (p.targetPosition + float3(0, cos(h + _Time) * 0.01, 0) - p.position) * _DeltaTime * p.speed;
+        p.position += pos;
+    }
+
+    p.color = float4(1, 1, 1, 1);
+    p.useTexture = 0;
+
+    _Particles[id] = p;
+}
+
+///
+/// Update all particles position.
+///
+[numthreads(THREAD_NUM,1,1)]
+void Update(uint id : SV_DispatchThreadID)
+{
+    Particle p = _Particles[id];
+
+    if (p.isActive == 1)
+    {
+        float3 pos = (p.targetPosition - p.position) * _DeltaTime * p.speed;
+        p.position += pos;
+        p.color = float4(0, 0, 1, 1);
+        p.useTexture = 1;
+    }
+    else
+    {
+        float h = rand(p.id);
+        float s = sin(p.id + _Time) * 1.5;
+        float c = cos(p.id + _Time) * 1.5;
+        float3 pp = float3(s, h * 0.3 + 1.0, c);
+        float3 pos = (pp - p.position) * _DeltaTime * p.speed;
+        p.position += pos;
+        p.color = float4(1, 1, 1, 1);
+        p.useTexture = 0;
+    }
+
+    _Particles[id] = p;
+}
+
