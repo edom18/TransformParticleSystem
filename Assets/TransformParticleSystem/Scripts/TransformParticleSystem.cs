@@ -18,6 +18,7 @@ namespace TPS
             public int MatrixDataID;
             public int TexturesID;
             public int BaseScaleID;
+            public int RadiusID;
 
             public PropertyDef()
             {
@@ -29,6 +30,7 @@ namespace TPS
                 MatrixDataID = Shader.PropertyToID("_MatrixData");
                 TexturesID = Shader.PropertyToID("_Textures");
                 BaseScaleID = Shader.PropertyToID("_BaseScale");
+                RadiusID = Shader.PropertyToID("_Radius");
             }
         }
 
@@ -37,6 +39,7 @@ namespace TPS
         [SerializeField] private Mesh _particleMesh = null;
         [SerializeField] private Material _particleMat = null;
         [SerializeField] private float _baseScale = 0.01f;
+        [SerializeField] private float _radius = 1f;
 
         private readonly int THREAD_NUM = 64;
 
@@ -282,6 +285,8 @@ namespace TPS
         /// </summary>
         private void DrawParticles()
         {
+            _computeShader.SetFloat(_propertyDef.RadiusID, _radius);
+
             _particleMat.SetFloat(_propertyDef.BaseScaleID, _baseScale);
 
             Graphics.DrawMeshInstancedIndirect(

@@ -35,6 +35,7 @@ StructuredBuffer<float4x4> _MatrixData;
 
 float _DeltaTime;
 float _Time;
+float _Radius;
 int _OnCircle;
 
 float rand(float x)
@@ -57,15 +58,15 @@ float noise(float3 pos)
     float3 ip = floor(pos);
     float3 fp = smoothstep(0, 1, frac(pos));
     float4 a = float4(
-        rand(ip + float3(0, 0, 0)),
-        rand(ip + float3(1, 0, 0)),
-        rand(ip + float3(0, 1, 0)),
-        rand(ip + float3(1, 1, 0)));
+    rand(ip + float3(0, 0, 0)),
+    rand(ip + float3(1, 0, 0)),
+    rand(ip + float3(0, 1, 0)),
+    rand(ip + float3(1, 1, 0)));
     float4 b = float4(
-        rand(ip + float3(0, 0, 1)),
-        rand(ip + float3(1, 0, 1)),
-        rand(ip + float3(0, 1, 1)),
-        rand(ip + float3(1, 1, 1)));
+    rand(ip + float3(0, 0, 1)),
+    rand(ip + float3(1, 0, 1)),
+    rand(ip + float3(0, 1, 1)),
+    rand(ip + float3(1, 1, 1)));
 
     a = lerp(a, b, fp.z);
     a.xy = lerp(a.xy, a.zw, fp.y);
@@ -101,8 +102,8 @@ void Explosion(uint id : SV_DispatchThreadID)
     if (_OnCircle == 1)
     {
         float h = rand(p.id);
-        float s = sin(p.id + _Time) * 1.5;
-        float c = cos(p.id + _Time) * 1.5;
+        float s = sin(p.id + _Time) * _Radius;
+        float c = cos(p.id + _Time) * _Radius;
         float3 pp = float3(s, h * 1.5, c) + noise(p.position);
         float3 pos = (pp - p.position) * _DeltaTime * p.speed;
         p.position += pos;
@@ -140,8 +141,8 @@ void Update(uint id : SV_DispatchThreadID)
     else
     {
         float h = rand(p.id);
-        float s = sin(p.id + _Time) * 1.5;
-        float c = cos(p.id + _Time) * 1.5;
+        float s = sin(p.id + _Time) * _Radius;
+        float c = cos(p.id + _Time) * _Radius;
         float3 pp = float3(s, h * 0.3 + 1.0, c);
         float3 pos = (pp - p.position) * _DeltaTime * p.speed;
         p.position += pos;
