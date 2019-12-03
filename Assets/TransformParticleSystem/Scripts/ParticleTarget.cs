@@ -7,7 +7,34 @@ namespace TPS
     public class ParticleTarget : MonoBehaviour
     {
         private Mesh _mesh = null;
-        public Mesh Mesh => _mesh ?? (_mesh = GetComponent<MeshFilter>().mesh);
+        public Mesh Mesh
+        {
+            get
+            {
+                if (_mesh == null)
+                {
+                    MeshFilter filter = GetComponent<MeshFilter>();
+                    if (filter != null)
+                    {
+                        _mesh = filter.mesh;
+                    }
+                    else
+                    {
+                        SkinnedMeshRenderer ren = GetComponent<SkinnedMeshRenderer>();
+                        if (ren != null)
+                        {
+                            _mesh = ren.sharedMesh;
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"This model ({name}) has no mesh.");
+                        }
+                    }
+                }
+
+                return _mesh;
+            }
+        }
         private Renderer _renderer = null;
         private Renderer Renderer => _renderer ?? (_renderer = GetComponent<Renderer>());
         public int VertexCount => Mesh.vertexCount;

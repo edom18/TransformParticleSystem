@@ -6,7 +6,7 @@ using TPS.Domain;
 
 namespace TPS.Demo
 {
-    public class OpeningSequence : MonoBehaviour
+    public class DemoSequence : MonoBehaviour
     {
         [SerializeField] private TransformParticleSystem _particleSystem = null;
         [SerializeField] private ParticleTargetGroup[] _groups = null;
