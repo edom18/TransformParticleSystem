@@ -19,6 +19,7 @@ namespace TPS
             public int TexturesID;
             public int BaseScaleID;
             public int RadiusID;
+            public int OffsetID;
 
             public PropertyDef()
             {
@@ -31,6 +32,7 @@ namespace TPS
                 TexturesID = Shader.PropertyToID("_Textures");
                 BaseScaleID = Shader.PropertyToID("_BaseScale");
                 RadiusID = Shader.PropertyToID("_Radius");
+                OffsetID = Shader.PropertyToID("_Offset");
             }
         }
 
@@ -40,6 +42,7 @@ namespace TPS
         [SerializeField] private Material _particleMat = null;
         [SerializeField] private float _baseScale = 0.01f;
         [SerializeField] private float _radius = 1f;
+        [SerializeField] private Vector3 _offset = Vector3.zero;
 
         private readonly int THREAD_NUM = 64;
 
@@ -275,6 +278,8 @@ namespace TPS
         {
             _computeShader.SetFloat(_propertyDef.DeltaTimeID, Time.deltaTime);
             _computeShader.SetFloat(_propertyDef.TimeID, Time.time);
+            _computeShader.SetFloat(_propertyDef.RadiusID, _radius);
+            _computeShader.SetVector(_propertyDef.OffsetID, _offset);
 
             _computeShader.SetBuffer(_currentKernel, _propertyDef.ParticleBufferID, _particleBuffer);
             _computeShader.Dispatch(_currentKernel, _maxCount / THREAD_NUM, 1, 1);
@@ -285,8 +290,6 @@ namespace TPS
         /// </summary>
         private void DrawParticles()
         {
-            _computeShader.SetFloat(_propertyDef.RadiusID, _radius);
-
             _particleMat.SetFloat(_propertyDef.BaseScaleID, _baseScale);
 
             Graphics.DrawMeshInstancedIndirect(

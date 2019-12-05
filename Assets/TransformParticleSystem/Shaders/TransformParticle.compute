@@ -37,6 +37,7 @@ float _DeltaTime;
 float _Time;
 float _Radius;
 int _OnCircle;
+float3 _Offset;
 
 float rand(float x)
 {
@@ -143,7 +144,7 @@ void Update(uint id : SV_DispatchThreadID)
         float h = rand(p.id);
         float s = sin(p.id + _Time) * _Radius;
         float c = cos(p.id + _Time) * _Radius;
-        float3 pp = float3(s, h * 0.3 + 1.0, c);
+        float3 pp = float3(s, h * 0.3 + 1.0, c) + _Offset;
         float3 pos = (pp - p.position) * _DeltaTime * p.speed;
         p.position += pos;
         p.color = float4(1, 1, 1, 1);
