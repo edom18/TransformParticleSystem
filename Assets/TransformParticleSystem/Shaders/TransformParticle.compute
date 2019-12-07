@@ -136,7 +136,6 @@ void Update(uint id : SV_DispatchThreadID)
     {
         float3 pos = (p.targetPosition - p.position) * _DeltaTime * p.speed;
         p.position += pos;
-        p.color = float4(0, 0, 1, 1);
         p.useTexture = 1;
     }
     else
