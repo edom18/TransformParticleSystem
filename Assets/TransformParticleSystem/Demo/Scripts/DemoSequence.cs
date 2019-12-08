@@ -72,6 +72,8 @@ namespace TPS.Demo
                 pos *= _radius;
 
                 _initData[i].targetPosition = pos;
+                _initData[i].isActive = 1;
+                _initData[i].scale = Vector3.one;
             }
 
             _particleSystem.SetInitData(_initData);
