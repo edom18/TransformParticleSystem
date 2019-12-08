@@ -74,7 +74,6 @@ namespace TPS.Demo
                 _initData[i].targetPosition = pos;
             }
 
-            _particleSystem.ClearMatrices();
             _particleSystem.SetInitData(_initData);
 
             _particleSystem.ComputeShader.SetInt("_OnCircle", 0);

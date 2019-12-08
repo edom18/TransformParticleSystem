@@ -11,7 +11,7 @@ namespace TPS.Domain
         Explode,
     }
 
-    public struct Particle
+    public struct TransformParticle
     {
         public int id;
         public int targetId;
@@ -26,6 +26,7 @@ namespace TPS.Domain
         public Vector4 color;
 
         public int useTexture;
+        public Vector3 scale;
     }
 
     public struct InitData
@@ -33,6 +34,7 @@ namespace TPS.Domain
         public int isActive;
         public Vector3 targetPosition;
         public int targetId;
+        public Vector3 scale;
         public Vector2 uv;
 
         public void Copy(InitData src)
@@ -41,6 +43,7 @@ namespace TPS.Domain
             targetPosition = src.targetPosition;
             targetId = src.targetId;
             uv = src.uv;
+            scale = src.scale;
         }
     }
 }

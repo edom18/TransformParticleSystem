@@ -1,10 +1,11 @@
-﻿#pragma kernel Update
+﻿#pragma kernel Init
+#pragma kernel Update
 #pragma kernel Setup
 #pragma kernel Explosion
 
 #define THREAD_NUM 64
 
-struct Particle
+struct TransformParticle
 {
     int id;
     int targetId;
@@ -19,6 +20,7 @@ struct Particle
     float4 color;
 
     int useTexture;
+    float3 scale;
 };
 
 struct InitData
@@ -26,16 +28,17 @@ struct InitData
     int isActive;
     float3 targetPosition;
     int targetId;
+    float3 scale;
     float2 uv;
 };
 
-RWStructuredBuffer<Particle> _Particles;
+RWStructuredBuffer<TransformParticle> _Particles;
 StructuredBuffer<InitData> _InitDataList;
 StructuredBuffer<float4x4> _MatrixData;
+StructuredBuffer<uint> _IndexBuffer;
 
 float _DeltaTime;
 float _Time;
-float _Radius;
 int _OnCircle;
 float3 _Offset;
 
@@ -74,20 +77,42 @@ float noise(float3 pos)
     return lerp(a.x, a.y, fp.x);
 }
 
+[numthreads(THREAD_NUM,1,1)]
+void Init(uint id : SV_DispatchThreadID)
+{
+    TransformParticle p = _Particles[id];
+
+    uint idx = _IndexBuffer[id];
+
+    float4x4 mat = _MatrixData[_InitDataList[idx].targetId];
+
+    p.isActive = _InitDataList[idx].isActive;
+    p.position = mul(mat, float4(_InitDataList[idx].targetPosition, 1.0)).xyz;
+    p.targetPosition = p.position;
+    p.uv = _InitDataList[idx].uv;
+    p.targetId = _InitDataList[idx].targetId;
+    p.scale = _InitDataList[idx].scale;
+
+    _Particles[id] = p;
+}
+
 ///
 /// Set a new data to the particles.
 ///
 [numthreads(THREAD_NUM,1,1)]
 void Setup(uint id : SV_DispatchThreadID)
 {
-    Particle p = _Particles[id];
+    TransformParticle p = _Particles[id];
 
-    float4x4 mat = _MatrixData[_InitDataList[id].targetId];
+    uint idx = _IndexBuffer[id];
+
+    float4x4 mat = _MatrixData[_InitDataList[idx].targetId];
 
     p.isActive = _InitDataList[id].isActive;
-    p.targetPosition = mul(mat, float4(_InitDataList[id].targetPosition, 1.0)).xyz;
-    p.uv = _InitDataList[id].uv;
-    p.targetId = _InitDataList[id].targetId;
+    p.targetPosition = mul(mat, float4(_InitDataList[idx].targetPosition, 1.0)).xyz;
+    p.uv = _InitDataList[idx].uv;
+    p.targetId = _InitDataList[idx].targetId;
+    p.scale = _InitDataList[idx].scale;
 
     _Particles[id] = p;
 }
@@ -98,14 +123,14 @@ void Setup(uint id : SV_DispatchThreadID)
 [numthreads(THREAD_NUM,1,1)]
 void Explosion(uint id : SV_DispatchThreadID)
 {
-    Particle p = _Particles[id];
+    TransformParticle p = _Particles[id];
 
     if (_OnCircle == 1)
     {
         float h = rand(p.id);
-        float s = sin(p.id + _Time) * _Radius;
-        float c = cos(p.id + _Time) * _Radius;
-        float3 pp = float3(s, h * 1.5, c) + noise(p.position);
+        float s = sin(p.id + _Time) * 1.5;
+        float c = cos(p.id + _Time) * 1.5;
+        float3 pp = float3(s, h * 1.5, c) + noise(p.position) + _Offset;
         float3 pos = (pp - p.position) * _DeltaTime * p.speed;
         p.position += pos;
         p.color = float4(1, 1, 1, 1);
@@ -114,7 +139,7 @@ void Explosion(uint id : SV_DispatchThreadID)
     else
     {
         float h = rand(p.id);
-        float3 pos = (p.targetPosition + float3(0, cos(h + _Time) * 0.01, 0) - p.position) * _DeltaTime * p.speed;
+        float3 pos = (p.targetPosition + float3(0, cos(h + _Time) * 0.01, 0) + _Offset - p.position) * _DeltaTime * p.speed;
         p.position += pos;
     }
 
@@ -130,20 +155,21 @@ void Explosion(uint id : SV_DispatchThreadID)
 [numthreads(THREAD_NUM,1,1)]
 void Update(uint id : SV_DispatchThreadID)
 {
-    Particle p = _Particles[id];
+    TransformParticle p = _Particles[id];
 
     if (p.isActive == 1)
     {
         float3 pos = (p.targetPosition - p.position) * _DeltaTime * p.speed;
         p.position += pos;
+        p.color = float4(0, 0, 1, 1);
         p.useTexture = 1;
     }
     else
     {
         float h = rand(p.id);
-        float s = sin(p.id + _Time) * _Radius;
-        float c = cos(p.id + _Time) * _Radius;
-        float3 pp = float3(s, h * 0.3 + 1.0, c) + _Offset;
+        float s = sin(p.id + _Time) * 1.5;
+        float c = cos(p.id + _Time) * 1.5;
+        float3 pp = float3(s, h * 0.2, c) + _Offset;
         float3 pos = (pp - p.position) * _DeltaTime * p.speed;
         p.position += pos;
         p.color = float4(1, 1, 1, 1);
@@ -152,4 +178,3 @@ void Update(uint id : SV_DispatchThreadID)
 
     _Particles[id] = p;
 }
-

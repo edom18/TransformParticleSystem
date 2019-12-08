@@ -17,7 +17,7 @@
 
             #include "UnityCG.cginc"
 
-            struct Particle
+            struct TransformParticle
             {
                 int id;
                 int targetId;
@@ -32,6 +32,7 @@
                 float4 color;
 
                 int useTexture;
+                float3 scale;
             };
 
             struct appdata
@@ -49,7 +50,7 @@
                 int useTex : TEXCOORD3;
             };
 
-            StructuredBuffer<Particle> _Particles;
+            StructuredBuffer<TransformParticle> _Particles;
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
@@ -59,11 +60,13 @@
 
             v2f vert (appdata v, uint id : SV_InstanceID)
             {
-                Particle p = _Particles[id];
+                TransformParticle p = _Particles[id];
 
                 v2f o;
 
-                v.vertex.xyz = (v.vertex.xyz * _BaseScale) + p.position;
+                float3 s = _BaseScale * p.scale;// * p.isActive;
+                v.vertex.xyz = (v.vertex.xyz * s) + p.position;
+
                 o.vertex = mul(UNITY_MATRIX_VP, float4(v.vertex.xyz, 1.0));
                 o.uv.xy = p.uv.xy;
                 o.uv.z = p.targetId;

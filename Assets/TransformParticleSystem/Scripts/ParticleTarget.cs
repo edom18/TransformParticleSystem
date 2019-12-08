@@ -6,29 +6,35 @@ namespace TPS
 {
     public class ParticleTarget : MonoBehaviour
     {
+        [SerializeField] private GameObject _target;
+        [SerializeField] private Vector3 _scale = Vector3.one;
+
+        protected GameObject Target => _target == null ? gameObject : _target;
         private Mesh _mesh = null;
         public Mesh Mesh
         {
             get
             {
-                if (_mesh == null)
+                if (_mesh != null)
                 {
-                    MeshFilter filter = GetComponent<MeshFilter>();
-                    if (filter != null)
+                    return _mesh;
+                }
+
+                MeshFilter filter = GetComponent<MeshFilter>();
+                if (filter != null)
+                {
+                    _mesh = filter.mesh;
+                }
+                else
+                {
+                    SkinnedMeshRenderer ren = GetComponent<SkinnedMeshRenderer>();
+                    if (ren != null)
                     {
-                        _mesh = filter.mesh;
+                        _mesh = ren.sharedMesh;
                     }
                     else
                     {
-                        SkinnedMeshRenderer ren = GetComponent<SkinnedMeshRenderer>();
-                        if (ren != null)
-                        {
-                            _mesh = ren.sharedMesh;
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"This model ({name}) has no mesh.");
-                        }
+                        Debug.LogWarning($"This model ({name}) has no mesh.");
                     }
                 }
 
@@ -36,11 +42,14 @@ namespace TPS
             }
         }
         private Renderer _renderer = null;
-        private Renderer Renderer => _renderer ?? (_renderer = GetComponent<Renderer>());
-        public int VertexCount => Mesh.vertexCount;
-        public Vector3[] Vertices => Mesh.vertices;
-        public Vector2[] UV => Mesh.uv;
-        public Matrix4x4 WorldMatrix => transform.localToWorldMatrix;
-        public Texture2D Texture => Renderer.material.mainTexture as Texture2D;
+        private Renderer Renderer => _renderer ?? (_renderer = Target.GetComponent<Renderer>());
+        public virtual int VertexCount => Mesh.vertexCount;
+        public virtual Vector3[] Vertices => Mesh.vertices;
+        public virtual Vector2[] UV => Mesh.uv;
+        public virtual Texture2D Texture => Renderer.material.mainTexture as Texture2D;
+        public Matrix4x4 WorldMatrix => Target.transform.localToWorldMatrix;
+        public Vector3 Scale => _scale;
+
+        public virtual void Initialize() { }
     }
 }
