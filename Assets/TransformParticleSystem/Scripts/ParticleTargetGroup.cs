@@ -22,7 +22,7 @@ namespace TPS
         #region ### MonoBehaviour ###
         private void Awake()
         {
-            _targets = GetComponentsInChildren<ParticleTarget>();
+            _targets = GetComponentsInChildren<ParticleTarget>(true);
 
             Debug.Log($"Targets count is {_targets.Length}");
 
