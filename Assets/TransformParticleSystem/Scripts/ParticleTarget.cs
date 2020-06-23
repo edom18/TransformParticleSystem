@@ -6,6 +6,7 @@ namespace TPS
 {
     public class ParticleTarget : MonoBehaviour
     {
+        private Texture2D _texture = null;
         private Mesh _mesh = null;
         public Mesh Mesh
         {
@@ -41,6 +42,22 @@ namespace TPS
         public Vector3[] Vertices => Mesh.vertices;
         public Vector2[] UV => Mesh.uv;
         public Matrix4x4 WorldMatrix => transform.localToWorldMatrix;
-        public Texture2D Texture => Renderer.material.mainTexture as Texture2D;
+        public Texture2D Texture
+        {
+            get
+            {
+                if (_texture == null)
+                {
+                    _texture = Renderer.material.mainTexture as Texture2D;
+
+                    if (_texture == null)
+                    {
+                        _texture = new Texture2D(1, 1);
+                    }
+                }
+
+                return _texture;
+            }
+        }
     }
 }
