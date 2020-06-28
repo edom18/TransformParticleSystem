@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-using TPS.Domain;
-
 namespace TPS
 {
     public class TransformParticleSystem : MonoBehaviour
@@ -18,11 +16,14 @@ namespace TPS
             public int MatrixDataID;
             public int TexturesID;
             public int BaseScaleID;
-            public int RadiusID;
+            public int OffsetID;
+            public int IndexBufferID;
+            public int OriginID;
+            public int GlobalScaleID;
+            public int GlobalScaleRatioID;
 
             public PropertyDef()
             {
-
                 ParticleBufferID = Shader.PropertyToID("_Particles");
                 InitDataListID = Shader.PropertyToID("_InitDataList");
                 DeltaTimeID = Shader.PropertyToID("_DeltaTime");
@@ -30,39 +31,54 @@ namespace TPS
                 MatrixDataID = Shader.PropertyToID("_MatrixData");
                 TexturesID = Shader.PropertyToID("_Textures");
                 BaseScaleID = Shader.PropertyToID("_BaseScale");
-                RadiusID = Shader.PropertyToID("_Radius");
+                OffsetID = Shader.PropertyToID("_Offset");
+                IndexBufferID = Shader.PropertyToID("_IndexBuffer");
+                OriginID = Shader.PropertyToID("_Origin");
+                GlobalScaleID = Shader.PropertyToID("_GlobalScale");
+                GlobalScaleRatioID = Shader.PropertyToID("_GlobalScaleRatio");
             }
         }
 
         [SerializeField] private int _count = 10000;
+        [SerializeField] private int _initDataCount = 500000;
         [SerializeField] private ComputeShader _computeShader = null;
         [SerializeField] private Mesh _particleMesh = null;
         [SerializeField] private Material _particleMat = null;
         [SerializeField] private float _baseScale = 0.01f;
-        [SerializeField] private float _radius = 1f;
+        [SerializeField] private Vector3 _offset = Vector3.zero;
 
         private readonly int THREAD_NUM = 64;
 
         public int ParticleCount => _count;
-        public ComputeShader ComputeShader => _computeShader;
 
         private ComputeBuffer _particleBuffer = null;
         private ComputeBuffer _initDataListBuffer = null;
         private ComputeBuffer _matrixBuffer = null;
         private ComputeBuffer _argsBuffer = null;
+        private ComputeBuffer _indexBuffer = null;
+
         private uint[] _argsData = new uint[] { 0, 0, 0, 0, 0, };
+        private uint[] _indices = null;
+        private uint[] _defaultIndices = null;
         private Matrix4x4[] _matrixData = new Matrix4x4[30];
-        private Particle[] _particleData = null;
+        private TransformParticle[] _particleData = null;
         private InitData[] _initDataList = null;
 
-        private PropertyDef _propertyDef = default;
+        private PropertyDef _propertyDef = null;
 
         private int _maxCount = 0;
 
-        private int _kernelUpdate = 0;
-        private int _kernelSetup = 0;
-        private int _kernelExplosion = 0;
-        private int _currentKernel = 0;
+        private int _kernelSetupParticlesImmediately = 0;
+        private int _kernelSetupParticles = 0;
+        private int _kernelDisable = 0;
+
+        private int _kernelUpdateAsTarget = 0;
+        private int _kernelUpdateAsMoveTo = 0;
+        private int _kernelUpdateAsExplosion = 0;
+        private int _kernelUpdateAsOrbit = 0;
+        private int _kernelUpdateAsGravity = 0;
+
+        private int _currentUpdateKernel = 0;
 
         private bool _isRunning = false;
 
@@ -76,7 +92,6 @@ namespace TPS
         {
             if (_isRunning)
             {
-                UpdateParticles();
                 DrawParticles();
             }
         }
@@ -87,6 +102,245 @@ namespace TPS
         }
         #endregion ### MonoBehaviour ###
 
+        #region ### Public methods
+        /// <summary>
+        /// Play this particle system.
+        /// </summary>
+        public void Play()
+        {
+            _isRunning = true;
+        }
+
+        /// <summary>
+        /// Stop this particle system.
+        /// </summary>
+        public void Stop()
+        {
+            _isRunning = false;
+        }
+
+        public void SetInt(int propertyID, int value)
+        {
+            _computeShader.SetInt(propertyID, value);
+        }
+
+        public void SetFloat(int propertyID, float value)
+        {
+            _computeShader.SetFloat(propertyID, value);
+        }
+
+        public void SetVector(int propertyID, Vector4 vector)
+        {
+            _computeShader.SetVector(propertyID, vector);
+        }
+
+        public void SetOrigin(Vector3 origin)
+        {
+            _computeShader.SetVector(_propertyDef.OriginID, origin);
+        }
+
+        public void SetGlobalScale(float scale)
+        {
+            SetFloat(_propertyDef.GlobalScaleID, scale);
+        }
+
+        public void SetGlobalScaleRatio(float scale)
+        {
+            SetFloat(_propertyDef.GlobalScaleRatioID, scale);
+        }
+
+        public void SetTexture(Texture texture)
+        {
+            _particleMat.SetTexture(_propertyDef.TexturesID, texture);
+        }
+
+        /// <summary>
+        /// Set compute shader calculation type.
+        /// </summary>
+        /// <param name="type"></param>
+        public void ChangeUpdateMethod(UpdateMethodType type)
+        {
+            switch (type)
+            {
+                case UpdateMethodType.Target:
+                    _currentUpdateKernel = _kernelUpdateAsTarget;
+                    break;
+
+                case UpdateMethodType.MoveTo:
+                    _currentUpdateKernel = _kernelUpdateAsMoveTo;
+                    break;
+
+                case UpdateMethodType.Explode:
+                    _currentUpdateKernel = _kernelUpdateAsExplosion;
+                    break;
+
+                case UpdateMethodType.Orbit:
+                    _currentUpdateKernel = _kernelUpdateAsOrbit;
+                    break;
+
+                case UpdateMethodType.Gravity:
+                    _currentUpdateKernel = _kernelUpdateAsGravity;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Set a target group.
+        /// </summary>
+        public void SetGroup(ParticleTargetGroup group, ParticleTargetSubGroup subGroup = null)
+        {
+            DisableAllParticles();
+
+            UpdateMatrices(group);
+
+            UpdateInitData(group.AllInitData);
+
+            if (subGroup == null)
+            {
+                UpdateIndices(group.Indices);
+            }
+            else
+            {
+                UpdateIndices(subGroup.GetIndices());
+            }
+
+            UpdateAllBuffers(_kernelSetupParticles);
+
+            Dispatch(_kernelSetupParticles);
+
+            _particleMat.SetTexture(_propertyDef.TexturesID, group.TextureArray);
+        }
+
+        /// <summary>
+        /// Set an offset to the particles.
+        /// </summary>
+        /// <param name="offset"></param>
+        public void SetOffset(Vector3 offset)
+        {
+            _offset = offset;
+            _computeShader.SetVector(_propertyDef.OffsetID, _offset);
+        }
+
+        public void ResetIndices()
+        {
+            UpdateIndices(_defaultIndices);
+        }
+
+        /// <summary>
+        /// Clear all matrix data.
+        /// </summary>
+        public void ClearMatrices()
+        {
+            for (int i = 0; i < _matrixData.Length; i++)
+            {
+                _matrixData[i] = Matrix4x4.identity;
+            }
+
+            _matrixBuffer.SetData(_matrixData);
+
+            SetBuffer(_kernelSetupParticles, _propertyDef.MatrixDataID, _matrixBuffer);
+        }
+
+        public void DisableAllParticles()
+        {
+            SetBuffer(_kernelDisable, _propertyDef.ParticleBufferID, _particleBuffer);
+            Dispatch(ComputeType.DisableAll);
+        }
+
+        /// <summary>
+        /// Set init data for all particles.
+        /// </summary>
+        /// <param name="updateData"></param>
+        public void UpdateInitData(InitData[] updateData)
+        {
+            if (updateData.Length > _initDataList.Length)
+            {
+                Debug.LogError("Init data list size is not enough to use.");
+            }
+
+            int len = updateData.Length > _initDataList.Length ? _initDataList.Length : updateData.Length;
+
+            System.Array.Copy(updateData, _initDataList, len);
+
+            _initDataListBuffer.SetData(_initDataList);
+        }
+
+        public void UpdateIndices(uint[] indices)
+        {
+            if (indices.Length >= _indices.Length)
+            {
+                System.Array.Copy(indices, _indices, _indices.Length);
+            }
+            else
+            {
+                int idx = 0;
+
+                while (true)
+                {
+                    int len = indices.Length;
+
+                    if (_indices.Length < idx + len)
+                    {
+                        len = _indices.Length - idx;
+                        System.Array.Copy(indices, 0, _indices, idx, len);
+                        break;
+                    }
+
+                    System.Array.Copy(indices, 0, _indices, idx, len);
+
+                    idx += len;
+                }
+            }
+
+            _indexBuffer.SetData(_indices);
+        }
+
+        /// <summary>
+        /// Update matrices from a group.
+        /// </summary>
+        public void UpdateMatrices(ParticleTargetGroup group)
+        {
+            group.UpdateMatrices();
+
+            System.Array.Copy(group.MatrixData, 0, _matrixData, 0, group.MatrixData.Length);
+
+            _matrixBuffer.SetData(_matrixData);
+        }
+
+        public void UpdateAllBuffers(ComputeType type)
+        {
+            int kernelId = GetKernelID(type);
+
+            UpdateAllBuffers(kernelId);
+        }
+
+        public void Dispatch(ComputeType type)
+        {
+            int kernelId = GetKernelID(type);
+
+            Dispatch(kernelId);
+        }
+
+        #endregion ### Public methods
+
+        #region ### Private methods ###
+        private int GetKernelID(ComputeType type)
+        {
+            switch (type)
+            {
+                case ComputeType.Setup:
+                    return _kernelSetupParticles;
+
+                case ComputeType.SetupImmediately:
+                    return _kernelSetupParticlesImmediately;
+
+                case ComputeType.DisableAll:
+                    return _kernelDisable;
+            }
+
+            return -1;
+        }
+
         /// <summary>
         /// Release all buffers.
         /// </summary>
@@ -96,6 +350,7 @@ namespace TPS
             _argsBuffer?.Release();
             _matrixBuffer?.Release();
             _initDataListBuffer?.Release();
+            _indexBuffer?.Release();
         }
 
         /// <summary>
@@ -106,15 +361,23 @@ namespace TPS
             _propertyDef = new PropertyDef();
 
             // Get kernel ids.
-            _kernelUpdate = _computeShader.FindKernel("Update");
-            _kernelSetup = _computeShader.FindKernel("Setup");
-            _kernelExplosion = _computeShader.FindKernel("Explosion");
+            _kernelSetupParticles = _computeShader.FindKernel("SetupParticles");
+            _kernelSetupParticlesImmediately = _computeShader.FindKernel("SetupParticlesImmediately");
+            _kernelDisable = _computeShader.FindKernel("Disable");
 
-            _currentKernel = _kernelUpdate;
+            _kernelUpdateAsTarget = _computeShader.FindKernel("UpdateAsTarget");
+            _kernelUpdateAsMoveTo = _computeShader.FindKernel("UpdateAsMoveTo");
+            _kernelUpdateAsExplosion = _computeShader.FindKernel("UpdateAsExplosion");
+            _kernelUpdateAsOrbit = _computeShader.FindKernel("UpdateAsOrbit");
+            _kernelUpdateAsGravity = _computeShader.FindKernel("UpdateAsGravity");
+
+            _currentUpdateKernel = _kernelUpdateAsTarget;
+
+            SetGlobalScaleRatio(1f);
 
             CreateBuffers();
 
-            _computeShader.SetBuffer(_kernelUpdate, _propertyDef.ParticleBufferID, _particleBuffer);
+            _computeShader.SetBuffer(_kernelUpdateAsTarget, _propertyDef.ParticleBufferID, _particleBuffer);
 
             _particleMat.SetBuffer(_propertyDef.ParticleBufferID, _particleBuffer);
         }
@@ -129,24 +392,30 @@ namespace TPS
 
             Debug.Log($"Will create {_maxCount} particles.");
 
-            _particleData = new Particle[_maxCount];
+            _particleData = new TransformParticle[_maxCount];
             for (int i = 0; i < _particleData.Length; i++)
             {
-                _particleData[i] = new Particle
+                _particleData[i] = new TransformParticle
                 {
-                    id = i,
-                    isActive = 0,
                     speed = Random.Range(2f, 5f),
                     position = Vector3.zero,
                     targetPosition = Vector3.zero,
+                    scale = 1f,
                 };
             }
 
-            _initDataList = new InitData[_maxCount];
+            _initDataList = new InitData[_initDataCount];
             for (int i = 0; i < _initDataList.Length; i++)
             {
-                _initDataList[i].isActive = 0;
                 _initDataList[i].targetPosition = Vector3.zero;
+            }
+
+            _indices = new uint[_maxCount];
+
+            _defaultIndices = new uint[_maxCount];
+            for (int i = 0; i < _defaultIndices.Length; i++)
+            {
+                _defaultIndices[i] = (uint)i;
             }
 
             for (int i = 0; i < _matrixData.Length; i++)
@@ -156,11 +425,14 @@ namespace TPS
 
             // Setup buffers.
             _argsBuffer = new ComputeBuffer(1, Marshal.SizeOf(typeof(uint)) * _argsData.Length, ComputeBufferType.IndirectArguments);
-            _particleBuffer = new ComputeBuffer(_maxCount, Marshal.SizeOf(typeof(Particle)));
+            _particleBuffer = new ComputeBuffer(_maxCount, Marshal.SizeOf(typeof(TransformParticle)));
             _particleBuffer.SetData(_particleData);
-            _initDataListBuffer = new ComputeBuffer(_maxCount, Marshal.SizeOf(typeof(InitData)));
+            _initDataListBuffer = new ComputeBuffer(_initDataList.Length, Marshal.SizeOf(typeof(InitData)));
 
             _matrixBuffer = new ComputeBuffer(_matrixData.Length, Marshal.SizeOf(typeof(Matrix4x4)));
+
+            _indexBuffer = new ComputeBuffer(_indices.Length, Marshal.SizeOf(typeof(uint)));
+            _indexBuffer.SetData(_defaultIndices);
 
             _argsData[0] = _particleMesh.GetIndexCount(0);
             _argsData[1] = (uint)_maxCount;
@@ -169,103 +441,15 @@ namespace TPS
             _argsBuffer.SetData(_argsData);
         }
 
-        public void Play()
-        {
-            _isRunning = true;
-        }
-
-        public void Stop()
-        {
-            _isRunning = false;
-        }
-
-        public void SetType(ComputeType type)
-        {
-            switch (type)
-            {
-                case ComputeType.Target:
-                    _currentKernel = _kernelUpdate;
-                    break;
-
-                case ComputeType.Explode:
-                    _currentKernel = _kernelExplosion;
-                    break;
-
-                default:
-                    _isRunning = false;
-                    break;
-            }
-        }
-
         /// <summary>
-        /// Set a target group.
+        /// Set buffer to the compute shader.
         /// </summary>
-        public void SetGroup(ParticleTargetGroup group)
+        /// <param name="kernelId">Target kernel ID</param>
+        /// <param name="propertyId">Target property ID</param>
+        /// <param name="buffer">Target buffer</param>
+        private void SetBuffer(int kernelId, int propertyId, ComputeBuffer buffer)
         {
-            UpdateMatrices(group);
-            UpdateData(group);
-
-            _particleMat.SetTexture(_propertyDef.TexturesID, group.TextureArray);
-        }
-
-        public void ClearMatrices()
-        {
-            for (int i = 0; i < _matrixData.Length; i++)
-            {
-                _matrixData[i] = Matrix4x4.identity;
-            }
-
-            _matrixBuffer.SetData(_matrixData);
-            _computeShader.SetBuffer(_kernelSetup, _propertyDef.MatrixDataID, _matrixBuffer);
-        }
-
-        /// <summary>
-        /// Update matrices from a group.
-        /// </summary>
-        private void UpdateMatrices(ParticleTargetGroup group)
-        {
-            for (int i = 0; i < group.ParticleTargets.Length; i++)
-            {
-                _matrixData[i] = group.ParticleTargets[i].WorldMatrix;
-            }
-
-            _matrixBuffer.SetData(_matrixData);
-            _computeShader.SetBuffer(_kernelSetup, _propertyDef.MatrixDataID, _matrixBuffer);
-        }
-
-        /// <summary>
-        /// Update the data from a group.
-        /// </summary>
-        /// <param name="group"></param>
-        private void UpdateData(ParticleTargetGroup group)
-        {
-            InitData[] updateData = group.GetAllInitData();
-            SetInitData(updateData);
-        }
-
-        /// <summary>
-        /// Set init data for all particles.
-        /// </summary>
-        /// <param name="updateData"></param>
-        public void SetInitData(InitData[] updateData)
-        {
-            for (int i = 0; i < _initDataList.Length; i++)
-            {
-                if (i < updateData.Length)
-                {
-                    _initDataList[i].Copy(updateData[i]);
-                }
-                else
-                {
-                    _initDataList[i].isActive = 0;
-                }
-            }
-
-            _initDataListBuffer.SetData(_initDataList);
-
-            _computeShader.SetBuffer(_kernelSetup, _propertyDef.ParticleBufferID, _particleBuffer);
-            _computeShader.SetBuffer(_kernelSetup, _propertyDef.InitDataListID, _initDataListBuffer);
-            _computeShader.Dispatch(_kernelSetup, _maxCount / THREAD_NUM, 1, 1);
+            _computeShader.SetBuffer(kernelId, propertyId, buffer);
         }
 
         /// <summary>
@@ -273,11 +457,28 @@ namespace TPS
         /// </summary>
         private void UpdateParticles()
         {
+            _computeShader.SetVector(_propertyDef.OffsetID, _offset);
             _computeShader.SetFloat(_propertyDef.DeltaTimeID, Time.deltaTime);
             _computeShader.SetFloat(_propertyDef.TimeID, Time.time);
 
-            _computeShader.SetBuffer(_currentKernel, _propertyDef.ParticleBufferID, _particleBuffer);
-            _computeShader.Dispatch(_currentKernel, _maxCount / THREAD_NUM, 1, 1);
+            SetBuffer(_currentUpdateKernel, _propertyDef.ParticleBufferID, _particleBuffer);
+
+            Dispatch(_currentUpdateKernel);
+
+            _particleMat.SetFloat(_propertyDef.BaseScaleID, _baseScale);
+        }
+
+        private void UpdateAllBuffers(int kernelId)
+        {
+            SetBuffer(kernelId, _propertyDef.ParticleBufferID, _particleBuffer);
+            SetBuffer(kernelId, _propertyDef.InitDataListID, _initDataListBuffer);
+            SetBuffer(kernelId, _propertyDef.MatrixDataID, _matrixBuffer);
+            SetBuffer(kernelId, _propertyDef.IndexBufferID, _indexBuffer);
+        }
+
+        private void Dispatch(int kernelId)
+        {
+            _computeShader.Dispatch(kernelId, _maxCount / THREAD_NUM, 1, 1);
         }
 
         /// <summary>
@@ -285,15 +486,13 @@ namespace TPS
         /// </summary>
         private void DrawParticles()
         {
-            _computeShader.SetFloat(_propertyDef.RadiusID, _radius);
-
-            _particleMat.SetFloat(_propertyDef.BaseScaleID, _baseScale);
+            UpdateParticles();
 
             Graphics.DrawMeshInstancedIndirect(
                 _particleMesh,
                 0, // submesh index
                 _particleMat,
-                new Bounds(Vector3.zero, Vector3.one * 32f),
+                new Bounds(_offset, Vector3.one * 32f),
                 _argsBuffer,
                 0,
                 null,
@@ -302,5 +501,6 @@ namespace TPS
                 gameObject.layer
             );
         }
+        #endregion ### Private methods ###
     }
 }
