@@ -119,6 +119,7 @@ namespace TPS
             _isRunning = false;
         }
 
+        #region ### Set parameters ###
         public void SetInt(int propertyID, int value)
         {
             _computeShader.SetInt(propertyID, value);
@@ -139,6 +140,16 @@ namespace TPS
             _computeShader.SetVector(_propertyDef.OriginID, origin);
         }
 
+        /// <summary>
+        /// Set an offset to the particles.
+        /// </summary>
+        /// <param name="offset"></param>
+        public void SetOffset(Vector3 offset)
+        {
+            _offset = offset;
+            _computeShader.SetVector(_propertyDef.OffsetID, _offset);
+        }
+
         public void SetGlobalScale(float scale)
         {
             SetFloat(_propertyDef.GlobalScaleID, scale);
@@ -153,6 +164,34 @@ namespace TPS
         {
             _particleMat.SetTexture(_propertyDef.TexturesID, texture);
         }
+
+        /// <summary>
+        /// Set a target group.
+        /// </summary>
+        public void SetGroup(ParticleTargetGroup group, ParticleTargetSubGroup subGroup = null)
+        {
+            DisableAllParticles();
+
+            UpdateMatrices(group);
+
+            UpdateInitData(group.AllInitData);
+
+            if (subGroup == null)
+            {
+                UpdateIndices(group.Indices);
+            }
+            else
+            {
+                UpdateIndices(subGroup.GetIndices());
+            }
+
+            UpdateAllBuffers(_kernelSetupParticles);
+
+            Dispatch(_kernelSetupParticles);
+
+            _particleMat.SetTexture(_propertyDef.TexturesID, group.TextureArray);
+        }
+        #endregion ### Set parameters ###
 
         /// <summary>
         /// Set compute shader calculation type.
@@ -184,41 +223,16 @@ namespace TPS
             }
         }
 
-        /// <summary>
-        /// Set a target group.
-        /// </summary>
-        public void SetGroup(ParticleTargetGroup group, ParticleTargetSubGroup subGroup = null)
+        public void ChangeUpdateMethodWithClear(UpdateMethodType type, bool needsImmediately = false)
         {
+            ChangeUpdateMethod(type);
+            ClearMatrices();
             DisableAllParticles();
 
-            UpdateMatrices(group);
+            ComputeType computeType = needsImmediately ? ComputeType.SetupImmediately : ComputeType.Setup;
 
-            UpdateInitData(group.AllInitData);
-
-            if (subGroup == null)
-            {
-                UpdateIndices(group.Indices);
-            }
-            else
-            {
-                UpdateIndices(subGroup.GetIndices());
-            }
-
-            UpdateAllBuffers(_kernelSetupParticles);
-
-            Dispatch(_kernelSetupParticles);
-
-            _particleMat.SetTexture(_propertyDef.TexturesID, group.TextureArray);
-        }
-
-        /// <summary>
-        /// Set an offset to the particles.
-        /// </summary>
-        /// <param name="offset"></param>
-        public void SetOffset(Vector3 offset)
-        {
-            _offset = offset;
-            _computeShader.SetVector(_propertyDef.OffsetID, _offset);
+            UpdateAllBuffers(computeType);
+            Dispatch(computeType);
         }
 
         public void ResetIndices()
@@ -247,6 +261,7 @@ namespace TPS
             Dispatch(ComputeType.DisableAll);
         }
 
+        #region ### Update methods ###
         /// <summary>
         /// Set init data for all particles.
         /// </summary>
@@ -313,6 +328,7 @@ namespace TPS
 
             UpdateAllBuffers(kernelId);
         }
+        #endregion ### Update methods ###
 
         public void Dispatch(ComputeType type)
         {
@@ -441,17 +457,7 @@ namespace TPS
             _argsBuffer.SetData(_argsData);
         }
 
-        /// <summary>
-        /// Set buffer to the compute shader.
-        /// </summary>
-        /// <param name="kernelId">Target kernel ID</param>
-        /// <param name="propertyId">Target property ID</param>
-        /// <param name="buffer">Target buffer</param>
-        private void SetBuffer(int kernelId, int propertyId, ComputeBuffer buffer)
-        {
-            _computeShader.SetBuffer(kernelId, propertyId, buffer);
-        }
-
+        #region ### Private update methods ###
         /// <summary>
         /// Update porticles position.
         /// </summary>
@@ -474,6 +480,18 @@ namespace TPS
             SetBuffer(kernelId, _propertyDef.InitDataListID, _initDataListBuffer);
             SetBuffer(kernelId, _propertyDef.MatrixDataID, _matrixBuffer);
             SetBuffer(kernelId, _propertyDef.IndexBufferID, _indexBuffer);
+        }
+        #endregion ### Private update methods ###
+
+        /// <summary>
+        /// Set buffer to the compute shader.
+        /// </summary>
+        /// <param name="kernelId">Target kernel ID</param>
+        /// <param name="propertyId">Target property ID</param>
+        /// <param name="buffer">Target buffer</param>
+        private void SetBuffer(int kernelId, int propertyId, ComputeBuffer buffer)
+        {
+            _computeShader.SetBuffer(kernelId, propertyId, buffer);
         }
 
         private void Dispatch(int kernelId)
