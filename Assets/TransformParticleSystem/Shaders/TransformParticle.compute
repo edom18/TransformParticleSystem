@@ -56,8 +56,6 @@ float _DeltaTime;
 float _Time;
 float _Gravity;
 float3 _Origin;
-float _GlobalScale;
-float _GlobalScaleRatio;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // For Setup
@@ -127,7 +125,6 @@ void UpdateAsTarget(uint id : SV_DispatchThreadID)
 
     p.position += pos;
     p.useTexture = 1;
-    p.scale *= _GlobalScaleRatio;
 
     _Particles[id] = p;
 }
@@ -145,7 +142,6 @@ void UpdateAsExplosion(uint id : SV_DispatchThreadID)
     p.velocity.xyz -= k * p.velocity.xyz * _DeltaTime;
 
     p.position += pos;
-    p.scale *= _GlobalScaleRatio;
 
     p.useTexture = 0;
 
@@ -171,8 +167,6 @@ void UpdateAsGravity(uint id : SV_DispatchThreadID)
     p.velocity.xyz -= k * p.velocity.xyz * _DeltaTime;
 
     p.position += p.velocity.xyz * _DeltaTime;
-    p.scale += (_GlobalScale - p.scale) * _DeltaTime;
-    p.scale *= _GlobalScaleRatio;
 
     _Particles[id] = p;
 }
@@ -197,7 +191,6 @@ void UpdateAsOrbit(uint id : SV_DispatchThreadID)
     p.velocity.xyz -= k * p.velocity.xyz * _DeltaTime;
 
     p.position += p.velocity.xyz * _DeltaTime;
-    p.scale = 1.5 * _GlobalScaleRatio;
 
     _Particles[id] = p;
 }
@@ -219,7 +212,6 @@ void UpdateAsMoveTo(uint id : SV_DispatchThreadID)
     p.velocity.xyz -= k * p.velocity.xyz * _DeltaTime;
 
     p.position += p.velocity.xyz * _DeltaTime;
-    p.scale += (_GlobalScale - p.scale) * _DeltaTime;
 
     _Particles[id] = p;
 }

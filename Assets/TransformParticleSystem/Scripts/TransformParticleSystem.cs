@@ -19,8 +19,6 @@ namespace TPS
             public int OffsetID;
             public int IndexBufferID;
             public int OriginID;
-            public int GlobalScaleID;
-            public int GlobalScaleRatioID;
 
             public PropertyDef()
             {
@@ -34,8 +32,6 @@ namespace TPS
                 OffsetID = Shader.PropertyToID("_Offset");
                 IndexBufferID = Shader.PropertyToID("_IndexBuffer");
                 OriginID = Shader.PropertyToID("_Origin");
-                GlobalScaleID = Shader.PropertyToID("_GlobalScale");
-                GlobalScaleRatioID = Shader.PropertyToID("_GlobalScaleRatio");
             }
         }
 
@@ -148,16 +144,6 @@ namespace TPS
         {
             _offset = offset;
             _computeShader.SetVector(_propertyDef.OffsetID, _offset);
-        }
-
-        public void SetGlobalScale(float scale)
-        {
-            SetFloat(_propertyDef.GlobalScaleID, scale);
-        }
-
-        public void SetGlobalScaleRatio(float scale)
-        {
-            SetFloat(_propertyDef.GlobalScaleRatioID, scale);
         }
 
         public void SetTexture(Texture texture)
@@ -388,8 +374,6 @@ namespace TPS
             _kernelUpdateAsGravity = _computeShader.FindKernel("UpdateAsGravity");
 
             _currentUpdateKernel = _kernelUpdateAsTarget;
-
-            SetGlobalScaleRatio(1f);
 
             CreateBuffers();
 
