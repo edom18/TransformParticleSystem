@@ -6,58 +6,54 @@ namespace TPS
 {
     public class ParticleTarget : MonoBehaviour
     {
-        private Texture2D _texture = null;
-        private Mesh _mesh = null;
-        public Mesh Mesh
-        {
-            get
-            {
-                if (_mesh == null)
-                {
-                    MeshFilter filter = GetComponent<MeshFilter>();
-                    if (filter != null)
-                    {
-                        _mesh = filter.mesh;
-                    }
-                    else
-                    {
-                        SkinnedMeshRenderer ren = GetComponent<SkinnedMeshRenderer>();
-                        if (ren != null)
-                        {
-                            _mesh = ren.sharedMesh;
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"This model ({name}) has no mesh.");
-                        }
-                    }
-                }
+        [SerializeField] private GameObject _target;
+        [SerializeField] private float _minScale = 0.5f;
+        [SerializeField] private float _maxScale = 1.0f;
+        [SerializeField] protected Texture2D _texture = null;
 
-                return _mesh;
+        protected GameObject Target => _target == null ? gameObject : _target;
+        private Mesh _mesh = null;
+        public Mesh Mesh => _mesh ?? (_mesh = GetMesh());
+        private Renderer _renderer = null;
+        private Renderer Renderer => _renderer ?? (_renderer = Target.GetComponent<Renderer>());
+        public virtual int VertexCount => Mesh.vertexCount;
+        public virtual Vector3[] Vertices => Mesh.vertices;
+        public virtual Vector2[] UV => Mesh.uv;
+        public virtual Texture2D Texture => _texture != null ? _texture : Renderer.material.mainTexture as Texture2D;
+        public Matrix4x4 WorldMatrix => Target.transform.localToWorldMatrix;
+        public float MinScale => _minScale;
+        public float MaxScale => _maxScale;
+
+        private uint[] _indices = null;
+        public uint[] SubGroupIndices => _indices;
+
+        public virtual void Initialize() { }
+
+        public void SetStartIndex(int startIdx)
+        {
+            _indices = new uint[VertexCount];
+
+            for (int i = 0; i < _indices.Length; i++)
+            {
+                _indices[i] = (uint)(i + startIdx);
             }
         }
-        private Renderer _renderer = null;
-        private Renderer Renderer => _renderer ?? (_renderer = GetComponent<Renderer>());
-        public int VertexCount => Mesh.vertexCount;
-        public Vector3[] Vertices => Mesh.vertices;
-        public Vector2[] UV => Mesh.uv;
-        public Matrix4x4 WorldMatrix => transform.localToWorldMatrix;
-        public Texture2D Texture
+
+        private Mesh GetMesh()
         {
-            get
+            MeshFilter filter = Target.GetComponent<MeshFilter>();
+            if (filter != null)
             {
-                if (_texture == null)
-                {
-                    _texture = Renderer.material.mainTexture as Texture2D;
-
-                    if (_texture == null)
-                    {
-                        _texture = new Texture2D(1, 1);
-                    }
-                }
-
-                return _texture;
+                return filter.mesh;
             }
+
+            SkinnedMeshRenderer skin = Target.GetComponent<SkinnedMeshRenderer>();
+            if (skin != null)
+            {
+                return skin.sharedMesh;
+            }
+
+            return null;
         }
     }
 }
