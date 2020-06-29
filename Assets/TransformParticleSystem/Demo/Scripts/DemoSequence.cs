@@ -44,16 +44,13 @@ namespace TPS.Demo
             if (Input.GetKeyDown(KeyCode.O))
             {
                 _particleSystem.SetOrigin(Vector3.one);
-                _particleSystem.ClearMatrices();
-                _particleSystem.ChangeUpdateMethod(UpdateMethodType.Orbit);
-                _particleSystem.UpdateAllBuffers(ComputeType.Setup);
-                _particleSystem.Dispatch(ComputeType.Setup);
+                _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Orbit);
             }
 
             if (Input.GetKeyDown(KeyCode.E))
             {
                 SetupExplosion();
-                _particleSystem.ChangeUpdateMethod(UpdateMethodType.Explode);
+                _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Explode);
 
                 //Explosion();
             }
@@ -126,14 +123,8 @@ namespace TPS.Demo
 
             _particleSystem.SetOrigin(Vector3.one);
 
-            _particleSystem.ClearMatrices();
-            _particleSystem.DisableAllParticles();
-
             _particleSystem.UpdateInitData(_initData);
-            _particleSystem.ResetIndices();
-            _particleSystem.UpdateAllBuffers(ComputeType.Setup);
-            _particleSystem.Dispatch(ComputeType.Setup);
         }
-
     }
 }
+

@@ -998,6 +998,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: TransformParticleSystem
       objectReference: {fileID: 0}
+    - target: {fileID: 6766302915200158917, guid: d1784cf015b28404ba2243b2319cd2d3,
+        type: 3}
+      propertyPath: _count
+      value: 100000
+      objectReference: {fileID: 0}
     - target: {fileID: 6766302915200158916, guid: d1784cf015b28404ba2243b2319cd2d3,
         type: 3}
       propertyPath: m_LocalPosition.x
