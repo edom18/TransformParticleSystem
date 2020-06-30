@@ -16,9 +16,7 @@ namespace TPS
     {
         None,
         Target,
-        MoveTo,
         Explode,
-        Orbit,
         Gravity,
     }
 

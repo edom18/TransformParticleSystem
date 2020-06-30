@@ -19,6 +19,7 @@ namespace TPS
             public int OffsetID;
             public int IndexBufferID;
             public int OriginID;
+            public int GravityID;
 
             public PropertyDef()
             {
@@ -32,6 +33,7 @@ namespace TPS
                 OffsetID = Shader.PropertyToID("_Offset");
                 IndexBufferID = Shader.PropertyToID("_IndexBuffer");
                 OriginID = Shader.PropertyToID("_Origin");
+                GravityID = Shader.PropertyToID("_Gravity");
             }
         }
 
@@ -41,6 +43,7 @@ namespace TPS
         [SerializeField] private Mesh _particleMesh = null;
         [SerializeField] private Material _particleMat = null;
         [SerializeField] private float _baseScale = 0.01f;
+        [SerializeField] private float _gravity = -0.1f;
         [SerializeField] private Vector3 _offset = Vector3.zero;
 
         private readonly int THREAD_NUM = 64;
@@ -69,9 +72,7 @@ namespace TPS
         private int _kernelDisable = 0;
 
         private int _kernelUpdateAsTarget = 0;
-        private int _kernelUpdateAsMoveTo = 0;
         private int _kernelUpdateAsExplosion = 0;
-        private int _kernelUpdateAsOrbit = 0;
         private int _kernelUpdateAsGravity = 0;
 
         private int _currentUpdateKernel = 0;
@@ -191,16 +192,8 @@ namespace TPS
                     _currentUpdateKernel = _kernelUpdateAsTarget;
                     break;
 
-                case UpdateMethodType.MoveTo:
-                    _currentUpdateKernel = _kernelUpdateAsMoveTo;
-                    break;
-
                 case UpdateMethodType.Explode:
                     _currentUpdateKernel = _kernelUpdateAsExplosion;
-                    break;
-
-                case UpdateMethodType.Orbit:
-                    _currentUpdateKernel = _kernelUpdateAsOrbit;
                     break;
 
                 case UpdateMethodType.Gravity:
@@ -368,9 +361,7 @@ namespace TPS
             _kernelDisable = _computeShader.FindKernel("Disable");
 
             _kernelUpdateAsTarget = _computeShader.FindKernel("UpdateAsTarget");
-            _kernelUpdateAsMoveTo = _computeShader.FindKernel("UpdateAsMoveTo");
             _kernelUpdateAsExplosion = _computeShader.FindKernel("UpdateAsExplosion");
-            _kernelUpdateAsOrbit = _computeShader.FindKernel("UpdateAsOrbit");
             _kernelUpdateAsGravity = _computeShader.FindKernel("UpdateAsGravity");
 
             _currentUpdateKernel = _kernelUpdateAsTarget;
@@ -378,6 +369,8 @@ namespace TPS
             CreateBuffers();
 
             _computeShader.SetBuffer(_kernelUpdateAsTarget, _propertyDef.ParticleBufferID, _particleBuffer);
+
+            SetFloat(_propertyDef.GravityID, _gravity);
 
             _particleMat.SetBuffer(_propertyDef.ParticleBufferID, _particleBuffer);
         }

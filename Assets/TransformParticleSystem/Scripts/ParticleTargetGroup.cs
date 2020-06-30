@@ -184,8 +184,10 @@ namespace TPS
                 _allInitData[i].uv = _allUV[i];
                 _allInitData[i].targetId = idx;
                 _allInitData[i].scale = Random.Range(_particleTargets[idx].MinScale, _particleTargets[idx].MaxScale);
-                _allInitData[i].horizontal = Random.insideUnitSphere.normalized;
-                _allInitData[i].velocity = (_allVertices[i] + Random.insideUnitSphere).normalized;
+                _allInitData[i].horizontal = Random.onUnitSphere;
+                Vector3 v = (_allVertices[i] + Random.insideUnitSphere).normalized;
+                float w = Random.Range(1f, 3f);
+                _allInitData[i].velocity = new Vector4(v.x, v.y, v.z, w);
             }
         }
 
