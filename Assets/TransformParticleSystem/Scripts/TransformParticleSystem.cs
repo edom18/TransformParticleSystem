@@ -19,6 +19,7 @@ namespace TPS
             public int OffsetID;
             public int IndexBufferID;
             public int OriginID;
+            public int GravityID;
 
             public PropertyDef()
             {
@@ -32,6 +33,7 @@ namespace TPS
                 OffsetID = Shader.PropertyToID("_Offset");
                 IndexBufferID = Shader.PropertyToID("_IndexBuffer");
                 OriginID = Shader.PropertyToID("_Origin");
+                GravityID = Shader.PropertyToID("_Gravity");
             }
         }
 
@@ -41,6 +43,7 @@ namespace TPS
         [SerializeField] private Mesh _particleMesh = null;
         [SerializeField] private Material _particleMat = null;
         [SerializeField] private float _baseScale = 0.01f;
+        [SerializeField] private float _gravity = -0.1f;
         [SerializeField] private Vector3 _offset = Vector3.zero;
 
         private readonly int THREAD_NUM = 64;
@@ -366,6 +369,8 @@ namespace TPS
             CreateBuffers();
 
             _computeShader.SetBuffer(_kernelUpdateAsTarget, _propertyDef.ParticleBufferID, _particleBuffer);
+
+            SetFloat(_propertyDef.GravityID, _gravity);
 
             _particleMat.SetBuffer(_propertyDef.ParticleBufferID, _particleBuffer);
         }
