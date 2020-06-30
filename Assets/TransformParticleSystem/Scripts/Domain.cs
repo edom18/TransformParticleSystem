@@ -22,6 +22,32 @@ namespace TPS
         Gravity,
     }
 
+    public  interface IParticleTarget
+    {
+        Mesh Mesh { get; }
+        int VertexCount { get; }
+        Vector3[] Vertices { get; }
+        Vector2[] UV { get; }
+        Texture2D Texture { get; }
+        Matrix4x4 WorldMatrix { get; }
+        float MinScale { get; }
+        float MaxScale { get; }
+        uint[] SubGroupIndices { get; }
+
+        void Initialize();
+        void SetStartIndex(int startIdx);
+    }
+
+    public interface IParticleTargetGroup
+    {
+        Texture2DArray TextureArray { get; }
+        Matrix4x4[] MatrixData { get; }
+        InitData[] AllInitData { get; }
+        uint[] Indices { get; }
+        void Initialize(TransformParticleSystem system);
+        void UpdateMatrices();
+    }
+
     public struct TransformParticle
     {
         public int isActive;
