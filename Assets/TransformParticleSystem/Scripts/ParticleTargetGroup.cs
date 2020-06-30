@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,12 +12,13 @@ namespace TPS
         public uint[] Indices;
     }
 
-    public class ParticleTargetGroup : MonoBehaviour
+    public class ParticleTargetGroup : MonoBehaviour, IParticleTargetGroup
     {
         [SerializeField] private bool _autoDetection = true;
-        [SerializeField] private ParticleTarget[] _targets = null;
+        [SerializeField] private GameObject[] _targets = null;
         [SerializeField] private bool _avoidAllocateIndices = false;
 
+        private IParticleTarget[] _particleTargets = null;
         private Vector3[] _allVertices = null;
         private InitData[] _allInitData = null;
         private Vector2[] _allUV = null;
@@ -46,15 +48,19 @@ namespace TPS
         {
             if (_autoDetection)
             {
-                _targets = GetComponentsInChildren<ParticleTarget>(true);
+                _particleTargets = GetComponentsInChildren<IParticleTarget>(true);
+            }
+            else
+            {
+                _particleTargets = _targets.Select(t => t.GetComponent<IParticleTarget>()).ToArray();
             }
 
-            foreach (var t in _targets)
+            foreach (var t in _particleTargets)
             {
                 t.Initialize();
             }
 
-            Debug.Log($"Targets count is {_targets.Length}");
+            Debug.Log($"Targets count is {_particleTargets.Length}");
             Debug.Log($"All data count is {GetCount()}");
 
             _allInitData = new InitData[GetCount()];
@@ -78,16 +84,16 @@ namespace TPS
         {
             Debug.Log("Create all textures as array.");
 
-            int count = _targets.Length;
-            int width = _targets[0].Texture.width;
-            int height = _targets[0].Texture.height;
+            int count = _particleTargets.Length;
+            int width = _particleTargets[0].Texture.width;
+            int height = _particleTargets[0].Texture.height;
             _textureArray = new Texture2DArray(width, height, count, TextureFormat.RGBA32, false, true);
             _textureArray.filterMode = FilterMode.Bilinear;
             _textureArray.wrapMode = TextureWrapMode.Repeat;
 
-            for (int i = 0; i < _targets.Length; i++)
+            for (int i = 0; i < _particleTargets.Length; i++)
             {
-                _textureArray.SetPixels(_targets[i].Texture.GetPixels(0), i, 0);
+                _textureArray.SetPixels(_particleTargets[i].Texture.GetPixels(0), i, 0);
             }
 
             _textureArray.Apply();
@@ -101,13 +107,13 @@ namespace TPS
 
             _allVertices = new Vector3[count];
             _allUV = new Vector2[count];
-            _matrixData = new Matrix4x4[_targets.Length];
+            _matrixData = new Matrix4x4[_particleTargets.Length];
 
             int idx = 0;
 
-            for (int i = 0; i < _targets.Length; i++)
+            for (int i = 0; i < _particleTargets.Length; i++)
             {
-                ParticleTarget t = _targets[i];
+                IParticleTarget t = _particleTargets[i];
 
                 System.Array.Copy(t.Vertices, 0, _allVertices, idx, t.Vertices.Length);
                 System.Array.Copy(t.UV, 0, _allUV, idx, t.UV.Length);
@@ -144,7 +150,7 @@ namespace TPS
 
             int total = 0;
 
-            foreach (var t in _targets)
+            foreach (var t in _particleTargets)
             {
                 total += t.VertexCount;
             }
@@ -163,21 +169,21 @@ namespace TPS
             Debug.Log("Create all data for intiialization.");
 
             int idx = 0;
-            int total = _targets[0].VertexCount;
+            int total = _particleTargets[0].VertexCount;
 
             for (int i = 0; i < _allInitData.Length; i++)
             {
                 if (i >= total)
                 {
                     idx++;
-                    total += _targets[idx].VertexCount;
+                    total += _particleTargets[idx].VertexCount;
                 }
 
                 _allInitData[i].isActive = 1;
                 _allInitData[i].targetPosition = _allVertices[i];
                 _allInitData[i].uv = _allUV[i];
                 _allInitData[i].targetId = idx;
-                _allInitData[i].scale = Random.Range(_targets[idx].MinScale, _targets[idx].MaxScale);
+                _allInitData[i].scale = Random.Range(_particleTargets[idx].MinScale, _particleTargets[idx].MaxScale);
                 _allInitData[i].horizontal = Random.insideUnitSphere.normalized;
                 _allInitData[i].velocity = (_allVertices[i] + Random.insideUnitSphere).normalized;
             }
@@ -188,9 +194,9 @@ namespace TPS
         /// </summary>
         public void UpdateMatrices()
         {
-            for (int i = 0; i < _targets.Length; i++)
+            for (int i = 0; i < _particleTargets.Length; i++)
             {
-                _matrixData[i] = _targets[i].WorldMatrix;
+                _matrixData[i] = _particleTargets[i].WorldMatrix;
             }
         }
     }
