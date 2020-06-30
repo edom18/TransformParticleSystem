@@ -3,8 +3,7 @@
 Transform Particle SystemはUnity向けのライブラリです。
 添付の動画のように、パーティクルを様々な形状に変形させることができます。
 
-（※ 動画内のモデルはUnity Asset Storeのものなので**[リポジトリ](http://d.hatena.ne.jp/keyword/%A5%EA%A5%DD%A5%B8%A5%C8%A5%EA)内には含まれません**。モデルは各自でご用意ください）
-
+（※ 動画内のモデルはUnity Asset Storeのものなので**リポジトリ内には含まれません**。モデルは各自でご用意ください）
 
 
 ![DEMO](./Images/demo.gif)
