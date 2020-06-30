@@ -4,6 +4,12 @@ Transform Particle SystemはUnity向けのライブラリです。
 添付の動画のように、パーティクルを様々な形状に変形させることができます。
 
 
+
+![DEMO](./Images/demo.gif)
+
+
+
+
 ## Getting started
 
 本パーティクルシステムの使い方を解説します。
