@@ -92,7 +92,7 @@ namespace TPS.Demo
         private void Orbit()
         {
             _particleSystem.SetOrigin(Vector3.one);
-            _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Orbit);
+            _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Gravity);
         }
 
         private void Explosion()

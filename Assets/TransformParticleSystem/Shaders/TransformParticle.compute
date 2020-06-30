@@ -4,9 +4,7 @@
 
 #pragma kernel UpdateAsTarget
 #pragma kernel UpdateAsExplosion
-#pragma kernel UpdateAsOrbit
 #pragma kernel UpdateAsGravity
-#pragma kernel UpdateAsMoveTo
 
 #define THREAD_NUM 64
 
@@ -164,51 +162,6 @@ void UpdateAsGravity(uint id : SV_DispatchThreadID)
     p.velocity.xyz += up * _Gravity * _DeltaTime;
 
     const float k = 2.5;
-    p.velocity.xyz -= k * p.velocity.xyz * _DeltaTime;
-
-    p.position += p.velocity.xyz * _DeltaTime;
-
-    _Particles[id] = p;
-}
-
-[numthreads(THREAD_NUM, 1, 1)]
-void UpdateAsOrbit(uint id : SV_DispatchThreadID)
-{
-    TransformParticle p = _Particles[id];
-
-    float power = p.velocity.w;
-
-    float3 d = p.position - _Origin;
-    float3 up = normalize(d);
-    float3 forward = normalize(cross(up, p.horizontal) + 0.00001);
-    float s = saturate(length(d)) * 5.0;
-
-    p.velocity.xyz += (forward * power) * _DeltaTime * p.isActive;
-
-    p.velocity.xyz += up * _Gravity * s * 2.0 * _DeltaTime;
-
-    const float k = 5.5;
-    p.velocity.xyz -= k * p.velocity.xyz * _DeltaTime;
-
-    p.position += p.velocity.xyz * _DeltaTime;
-
-    _Particles[id] = p;
-}
-
-[numthreads(THREAD_NUM, 1, 1)]
-void UpdateAsMoveTo(uint id : SV_DispatchThreadID)
-{
-    TransformParticle p = _Particles[id];
-
-    float power = p.velocity.w;
-
-    float3 d = p.position - _Origin;
-    float3 up = normalize(d);
-    float3 forward = normalize(cross(up, p.horizontal) + 0.00001);
-
-    p.velocity.xyz += (forward + (up * _Gravity)) * _DeltaTime * p.isActive;
-
-    const float k = 2.3 * power;
     p.velocity.xyz -= k * p.velocity.xyz * _DeltaTime;
 
     p.position += p.velocity.xyz * _DeltaTime;

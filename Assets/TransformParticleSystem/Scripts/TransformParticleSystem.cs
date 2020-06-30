@@ -69,9 +69,7 @@ namespace TPS
         private int _kernelDisable = 0;
 
         private int _kernelUpdateAsTarget = 0;
-        private int _kernelUpdateAsMoveTo = 0;
         private int _kernelUpdateAsExplosion = 0;
-        private int _kernelUpdateAsOrbit = 0;
         private int _kernelUpdateAsGravity = 0;
 
         private int _currentUpdateKernel = 0;
@@ -191,16 +189,8 @@ namespace TPS
                     _currentUpdateKernel = _kernelUpdateAsTarget;
                     break;
 
-                case UpdateMethodType.MoveTo:
-                    _currentUpdateKernel = _kernelUpdateAsMoveTo;
-                    break;
-
                 case UpdateMethodType.Explode:
                     _currentUpdateKernel = _kernelUpdateAsExplosion;
-                    break;
-
-                case UpdateMethodType.Orbit:
-                    _currentUpdateKernel = _kernelUpdateAsOrbit;
                     break;
 
                 case UpdateMethodType.Gravity:
@@ -368,9 +358,7 @@ namespace TPS
             _kernelDisable = _computeShader.FindKernel("Disable");
 
             _kernelUpdateAsTarget = _computeShader.FindKernel("UpdateAsTarget");
-            _kernelUpdateAsMoveTo = _computeShader.FindKernel("UpdateAsMoveTo");
             _kernelUpdateAsExplosion = _computeShader.FindKernel("UpdateAsExplosion");
-            _kernelUpdateAsOrbit = _computeShader.FindKernel("UpdateAsOrbit");
             _kernelUpdateAsGravity = _computeShader.FindKernel("UpdateAsGravity");
 
             _currentUpdateKernel = _kernelUpdateAsTarget;
