@@ -39,9 +39,9 @@ namespace TPS.Demo
                 Next();
             }
 
-            if (Input.GetKeyDown(KeyCode.O))
+            if (Input.GetKeyDown(KeyCode.G))
             {
-                Orbit();
+                Gravity();
             }
 
             if (Input.GetKeyDown(KeyCode.E))
@@ -62,9 +62,9 @@ namespace TPS.Demo
                 Explosion();
             }
 
-            if (GUI.Button(new Rect(10, 90, 150, 30), "Orbit (O)"))
+            if (GUI.Button(new Rect(10, 90, 150, 30), "Gravity (G)"))
             {
-                Orbit();
+                Gravity();
             }
         }
         #endregion ### MonoBehaviour ###
@@ -89,7 +89,7 @@ namespace TPS.Demo
             _particleSystem.SetGroup(CurrentGroup);
         }
 
-        private void Orbit()
+        private void Gravity()
         {
             _particleSystem.SetOrigin(Vector3.one);
             _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Gravity);
