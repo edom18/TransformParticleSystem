@@ -36,29 +36,35 @@ namespace TPS.Demo
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                _index = (_index + 1) % _groups.Length;
-                _particleSystem.ChangeUpdateMethod(UpdateMethodType.Target);
-                _particleSystem.SetGroup(CurrentGroup);
+                Next();
             }
 
             if (Input.GetKeyDown(KeyCode.O))
             {
-                _particleSystem.SetOrigin(Vector3.one);
-                _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Orbit);
+                Orbit();
             }
 
             if (Input.GetKeyDown(KeyCode.E))
             {
-                SetupExplosion();
-                _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Explode);
+                Explosion();
+            }
+        }
 
-                //Explosion();
+        private void OnGUI()
+        {
+            if (GUI.Button(new Rect(10, 10, 150, 30), "Next (N)"))
+            {
+                Next();
             }
 
-            if (Input.GetKeyDown(KeyCode.C))
+            if (GUI.Button(new Rect(10, 50, 150, 30), "Explosion (E)"))
             {
-                int id = Shader.PropertyToID("_OnCircle");
-                _particleSystem.SetInt(id, 1);
+                Explosion();
+            }
+
+            if (GUI.Button(new Rect(10, 90, 150, 30), "Orbit (O)"))
+            {
+                Orbit();
             }
         }
         #endregion ### MonoBehaviour ###
@@ -76,28 +82,20 @@ namespace TPS.Demo
             }
         }
 
-        private void Explosion()
+        private void Next()
         {
-            for (int i = 0; i < _initData.Length; i++)
-            {
-                Vector3 pos = Random.insideUnitSphere;
-                pos.y = Mathf.Abs(pos.y);
-                pos.Normalize();
-                pos *= _radius;
-
-                _initData[i].targetPosition = pos;
-            }
-
-            _particleSystem.ClearMatrices();
-            _particleSystem.UpdateInitData(_initData);
-
-            int id = Shader.PropertyToID("_OnCircle");
-            _particleSystem.SetInt(id, 0);
-
-            _particleSystem.ChangeUpdateMethod(UpdateMethodType.Explode);
+            _index = (_index + 1) % _groups.Length;
+            _particleSystem.ChangeUpdateMethod(UpdateMethodType.Target);
+            _particleSystem.SetGroup(CurrentGroup);
         }
 
-        private void SetupExplosion()
+        private void Orbit()
+        {
+            _particleSystem.SetOrigin(Vector3.one);
+            _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Orbit);
+        }
+
+        private void Explosion()
         {
             for (int i = 0; i < _initData.Length; i++)
             {
@@ -122,8 +120,8 @@ namespace TPS.Demo
             }
 
             _particleSystem.SetOrigin(Vector3.one);
-
             _particleSystem.UpdateInitData(_initData);
+            _particleSystem.ChangeUpdateMethodWithClear(UpdateMethodType.Explode);
         }
     }
 }
