@@ -157,7 +157,7 @@ void UpdateAsGravity(uint id : SV_DispatchThreadID)
     float3 up = normalize(d);
     float3 forward = normalize(cross(up, p.horizontal) + 0.00001);
 
-    p.velocity.xyz += (forward * power * 0.3) * _DeltaTime * p.isActive;
+    p.velocity.xyz += (forward * power) * _DeltaTime * p.isActive;
 
     p.velocity.xyz += up * _Gravity * _DeltaTime;
 
