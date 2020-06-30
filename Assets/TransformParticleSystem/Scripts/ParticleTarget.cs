@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace TPS
 {
-    public class ParticleTarget : MonoBehaviour
+    public class ParticleTarget : MonoBehaviour, IParticleTarget
     {
         [SerializeField] private GameObject _target;
         [SerializeField] private float _minScale = 0.5f;

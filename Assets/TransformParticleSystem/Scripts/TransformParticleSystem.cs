@@ -154,7 +154,7 @@ namespace TPS
         /// <summary>
         /// Set a target group.
         /// </summary>
-        public void SetGroup(ParticleTargetGroup group, ParticleTargetSubGroup subGroup = null)
+        public void SetGroup(IParticleTargetGroup group, ParticleTargetSubGroup subGroup = null)
         {
             DisableAllParticles();
 
@@ -299,7 +299,7 @@ namespace TPS
         /// <summary>
         /// Update matrices from a group.
         /// </summary>
-        public void UpdateMatrices(ParticleTargetGroup group)
+        public void UpdateMatrices(IParticleTargetGroup group)
         {
             group.UpdateMatrices();
 
