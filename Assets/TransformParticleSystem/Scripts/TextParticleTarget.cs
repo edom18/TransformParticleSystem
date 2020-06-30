@@ -4,6 +4,14 @@ using UnityEngine;
 
 namespace TPS
 {
+    /// <summary>
+    /// This class represents to show a texture as a text.
+    /// It looks like alpha-cut-texture.
+    /// </summary>
+    /// <remarks>
+    /// - _assumedPixelArea will divide a real texture area that means reduce particle count.
+    /// - _threshld will be used for deciding if pixel is alpha or not.
+    /// </remarks>
     public class TextParticleTarget : ParticleTarget
     {
         [SerializeField] private int _assumedPixelArea = 10000;

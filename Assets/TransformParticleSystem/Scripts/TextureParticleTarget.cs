@@ -7,7 +7,7 @@ namespace TPS
     public class TextureParticleTarget : ParticleTarget
     {
         [SerializeField] private float _divideNum = 1;
-        [SerializeField] private float _scalePerMeter = 0.1f;
+        [SerializeField] private float _scalePerMeter = 1f;
 
         public override int VertexCount => _vertices.Length;
         public override Vector3[] Vertices => _vertices;
