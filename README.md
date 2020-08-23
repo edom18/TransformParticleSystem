@@ -1,3 +1,7 @@
+[![Github issues](https://img.shields.io/github/issues/edom18/TransformParticleSystem)](https://github.com/edom18/TransformParticleSystem/issues)
+[![Github stars](https://img.shields.io/github/stars/edom18/TransformParticleSystem)](https://github.com/edom18/TransformParticleSystem/stargazers)
+[![Github license](https://img.shields.io/github/license/edom18/TransformParticleSystem)](https://github.com/edom18/TransformParticleSystem/)
+
 ## Introduction
 
 Transform Particle SystemはUnity向けのライブラリです。
